@@ -1,3 +1,5 @@
+package solutions
+
 import java.io.File
 
 fun getFuel(mass: Int) = (mass / 3) - 2
