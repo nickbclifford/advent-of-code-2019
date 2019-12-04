@@ -1,5 +1,6 @@
 package solutions
 
+import utils.iteration.groupBySelf
 import java.io.File
 import kotlin.math.abs
 
@@ -48,7 +49,7 @@ fun main() {
 
     val wirePoints = wires.map(::processWire)
 
-    val intersections = points.groupingBy { it }.eachCount().filterValues { it == 2 }.keys
+    val intersections = points.groupBySelf().filterValues { it == 2 }.keys
     val distances = intersections.map { (x, y) -> abs(x) + abs(y) }
 
     println("Manhattan distance: ${distances.min()}")

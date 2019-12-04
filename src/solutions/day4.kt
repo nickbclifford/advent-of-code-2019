@@ -1,5 +1,6 @@
 package solutions
 
+import utils.iteration.groupBySelf
 import java.io.File
 
 fun isValidPassword(digits: Sequence<Int>): Boolean {
@@ -11,7 +12,7 @@ fun isValidPassword(digits: Sequence<Int>): Boolean {
 fun isValidLargerPassword(digits: Sequence<Int>): Boolean {
     val pairs = digits.windowed(2)
 
-    val consecutivePairs = pairs.filter { it[0] == it[1] }.groupingBy { it }.eachCount()
+    val consecutivePairs = pairs.filter { it[0] == it[1] }.groupBySelf()
 
     return pairs.all { it[0] <= it[1] } && consecutivePairs.containsValue(1)
 }
