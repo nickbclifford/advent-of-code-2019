@@ -1,6 +1,6 @@
 package utils.intcode
 
-import utils.math.pow
+import utils.math.digitAt
 import kotlin.properties.Delegates
 
 abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
@@ -14,6 +14,38 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
 
     protected var ip by Delegates.observable(0) { _, _, _ -> ipChanged = true }
     private var ipChanged = false
+
+    private fun execute() {
+        while (!stopped) {
+            val fullOpcode = program[ip]
+
+            // get instruction, step pointer
+            val opcode = fullOpcode % 100
+            val instruction = opcodes[opcode] ?: throw NotImplementedError()
+            ip++
+            ipChanged = false // don't trigger the observable
+
+            val args = program.subList(ip, ip + instruction.arity).mapIndexed { idx, arg ->
+                if (instruction.ignoreModeIndices.contains(idx)) {
+                    arg
+                } else {
+                    // ignore the last two digits
+                    when (fullOpcode.digitAt(2 + idx)) {
+                        0 -> program[arg]
+                        1 -> arg
+                        else -> throw NotImplementedError()
+                    }
+                }
+            }
+
+            instruction.operation.invoke(this, args)
+
+            if (!ipChanged) {
+                ip += instruction.arity
+            }
+            ipChanged = false
+        }
+    }
 
     fun run(noun: Int, verb: Int): Int {
         // reset program to initial state
@@ -33,38 +65,6 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
         execute()
 
         return output
-    }
-
-    private fun execute() {
-        while (!stopped) {
-            val fullOpcode = program[ip]
-
-            // get instruction, step pointer
-            val opcode = fullOpcode % 100
-            val instruction = opcodes[opcode] ?: throw NotImplementedError()
-            ip++
-            ipChanged = false // don't trigger the observable
-
-            val modes = Array(instruction.arity) { Math.floorDiv(fullOpcode, 10.pow(2 + it)) % 10 }
-            val args = program.subList(ip, ip + instruction.arity).zip(modes).mapIndexed { idx, (arg, mode) ->
-                if (instruction.ignoreModeIndices.contains(idx)) {
-                    arg
-                } else {
-                    when (mode) {
-                        0 -> program[arg]
-                        1 -> arg
-                        else -> throw NotImplementedError()
-                    }
-                }
-            }
-
-            instruction.operation.invoke(this, args)
-
-            if (!ipChanged) {
-                ip += instruction.arity
-            }
-            ipChanged = false
-        }
     }
 
     private fun reset() {
