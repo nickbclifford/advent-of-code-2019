@@ -5,11 +5,11 @@ import java.io.File
 
 class GravityAssistMachine(input: List<Int>) : IntcodeMachine(input) {
     override val opcodes = mapOf(
-        1 to Instruction(3) { args ->
-            program[args[2]] = program[args[0]] + program[args[1]]
+        1 to Instruction(3, listOf(2)) { args ->
+            program[args[2]] = args[0] + args[1]
         },
-        2 to Instruction(3) { args ->
-            program[args[2]] = program[args[0]] * program[args[1]]
+        2 to Instruction(3, listOf(2)) { args ->
+            program[args[2]] = args[0] * args[1]
         },
         99 to Instruction(0) { stop() }
     )
