@@ -2,27 +2,33 @@ package solutions
 
 import java.io.File
 
-class TreeNode(val value: String, var parent: TreeNode? = null, var children: MutableSet<TreeNode> = mutableSetOf()) {
-    fun depth(): Int {
-        var counter = 0
-        var current = this
-        while (current.parent != null) {
-            counter++
-            current = current.parent!!
-        }
-        return counter
+class TreeNode(val value: String) {
+    companion object {
+        lateinit var searchNode: TreeNode
+    }
+
+    var parent: TreeNode? = null
+    var children: MutableSet<TreeNode> = mutableSetOf()
+
+    fun depth(): Int = if (parent == null) {
+        0
+    } else {
+        parent!!.depth() + 1
     }
 
     override operator fun equals(other: Any?): Boolean = other is TreeNode && value == other.value
     override fun hashCode() = value.hashCode()
 
-    fun hasDescendant(other: TreeNode): Boolean = if (this == other) {
-        true
-    } else {
-        children.any { it.hasDescendant(other) }
+    val hasDescendant: Boolean by lazy {
+        if (this == searchNode) {
+            true
+        } else {
+            children.any { it.hasDescendant }
+        }
     }
 
-    fun hasSibling(other: TreeNode) = parent?.children?.toSet()?.contains(other) ?: false
+
+    fun hasSearchSibling() = parent?.children?.toSet()?.contains(searchNode) ?: false
 }
 
 fun main() {
@@ -43,13 +49,15 @@ fun main() {
     val youObj = allNodes["YOU"] ?: throw NotImplementedError()
     val santaObj = allNodes["SAN"] ?: throw NotImplementedError()
 
+    TreeNode.searchNode = santaObj
+
     var counter = 0
     var currentNode = youObj
 
-    while (!currentNode.hasSibling(santaObj)) {
+    while (!currentNode.hasSearchSibling()) {
         counter++
-        currentNode = if (currentNode.hasDescendant(santaObj)) {
-            currentNode.children.find { it.hasDescendant(santaObj) }!!
+        currentNode = if (currentNode.hasDescendant) {
+            currentNode.children.find { it.hasDescendant }!!
         } else {
             currentNode.parent!!
         }
