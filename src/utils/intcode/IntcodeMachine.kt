@@ -9,8 +9,17 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
     private var stopped = false
     protected var program = inputInstructions.toMutableList()
 
-    protected var input = 0
-    protected var output = 0
+    private var allInputs = mutableListOf<Int>()
+
+    var haltOnOutput = false
+    var haltedByOpcode = false
+        private set
+    protected var output by Delegates.observable(0) { _, _, _ ->
+        if (haltOnOutput) {
+            stop()
+            haltedByOpcode = false
+        }
+    }
 
     protected var ip by Delegates.observable(0) { _, _, _ -> ipChanged = true }
     private var ipChanged = false
@@ -58,9 +67,13 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
         return program[0]
     }
 
-    fun run(programInput: Int): Int {
-        reset()
-        input = programInput
+    fun run(programInputs: List<Int>): Int {
+        if (haltOnOutput) {
+            haltOnOutputReset()
+        } else {
+            reset()
+        }
+        allInputs = programInputs.toMutableList()
 
         execute()
 
@@ -68,15 +81,23 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
     }
 
     private fun reset() {
+        haltOnOutputReset()
         program = inputInstructions.toMutableList()
-        stopped = false
-        input = 0
         output = 0
         ip = 0
         ipChanged = false
     }
 
+    private fun haltOnOutputReset() {
+        stopped = false
+        allInputs = mutableListOf()
+        haltedByOpcode = false
+    }
+
     protected fun stop() {
         stopped = true
+        haltedByOpcode = true
     }
+
+    protected fun input() = allInputs.removeAt(0)
 }

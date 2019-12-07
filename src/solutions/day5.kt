@@ -13,7 +13,7 @@ class TESTMachine(instructions: List<Int>): IntcodeMachine(instructions) {
             program[args[2]] = args[0] * args[1]
         },
         3 to Instruction(1, listOf(0)) { args ->
-            program[args[0]] = input
+            program[args[0]] = input()
         },
         4 to Instruction(1) { args ->
             output = args[0]
@@ -43,6 +43,6 @@ fun main() {
 
     val machine = TESTMachine(instructions)
 
-    println("Diagnostic: ${machine.run(1)}")
-    println("Thermal radiators: ${machine.run(5)}")
+    println("Diagnostic: ${machine.run(listOf(1))}")
+    println("Thermal radiators: ${machine.run(listOf(5))}")
 }
