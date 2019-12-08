@@ -3,20 +3,22 @@ package solutions
 import com.marcinmoskala.math.permutations
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 
-fun main() {
+suspend fun main() {
     val program = File("inputs/test.txt").readText().trim().split(',').map { it.toInt() }
 
-    val machines = List(5) { TESTMachine(program) }
+    val machines = List(5) { TESTMachine(program, it) }
 
 //    val chainPhaseSettings = (0..4).toList().permutations().filter { it.size == 5 }
 //
 //    fun runChain(initial: Int, phaseSettings: List<Int>): Int {
 //        var step = initial
 //        for ((setting, machine) in phaseSettings.zip(machines)) {
+//            println("blocking chain for machine ${machine.machineNum}")
 //            step = machine.run(listOf(setting, step))
 //        }
 //        return step
@@ -24,8 +26,8 @@ fun main() {
 //
 //    println("Max chain thrust: ${chainPhaseSettings.map { runChain(0, it) }.max()}")
 
-    runBlocking {
-        suspend fun runFeedback(phaseSettings: List<Int>): Int {
+    suspend fun runFeedback(phaseSettings: List<Int>): Int {
+        coroutineScope {
             machines[0].input = produce {
                 send(0); send(phaseSettings[0]); for (x in machines[4].output) send(x)
             }
@@ -42,17 +44,27 @@ fun main() {
                 send(phaseSettings[4]); for (x in machines[3].output) send(x)
             }
 
-            val jobs = machines.map { machine ->
+
+            for (machine in machines) {
                 launch {
+                    println("-- ${machine.machineNum} starting pipeline --")
                     machine.runPipeline()
+                    println("-- ${machine.machineNum} finished pipeline")
+                }.invokeOnCompletion {
+                    println("-- ${machine.machineNum} coroutine completed --")
+                    if (isActive) {
+                        println("(coroutine scope is still active)")
+                    }
                 }
             }
-            jobs.forEach { it.join() }
-            return machines[4].output.toList().last()
+
+            println("all feedback coroutines launched")
         }
-
-        val feedbackPhaseSettings = (5..9).toList().permutations().filter { it.size == 5 }
-
-        println("Max feedback thrust: ${feedbackPhaseSettings.map { runFeedback(it) }.max()}")
+        println("coroutine scope completed")
+        return machines[4].output.toList().last()
     }
+
+    val feedbackPhaseSettings = (5..9).toList().permutations().filter { it.size == 5 }
+
+    println("Max feedback thrust: ${feedbackPhaseSettings.map { runFeedback(it) }.max()}")
 }
