@@ -1,5 +1,10 @@
 package utils.intcode
 
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.channels.produce
+import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.runBlocking
 import utils.math.digitAt
 import kotlin.properties.Delegates
 
@@ -9,22 +14,16 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
     private var stopped = false
     protected var program = inputInstructions.toMutableList()
 
-    private var allInputs = mutableListOf<Int>()
-
-    var haltOnOutput = false
-    var haltedByOpcode = false
-        private set
-    protected var output by Delegates.observable(0) { _, _, _ ->
-        if (haltOnOutput) {
-            stop()
-            haltedByOpcode = false
-        }
-    }
-
     protected var ip by Delegates.observable(0) { _, _, _ -> ipChanged = true }
     private var ipChanged = false
 
-    private fun execute() {
+    lateinit var input: ReceiveChannel<Int>
+    protected var internalOutput = Channel<Int>(Channel.UNLIMITED)
+
+    val output: ReceiveChannel<Int>
+        get() = internalOutput
+
+    private suspend fun execute() {
         while (!stopped) {
             val fullOpcode = program[ip]
 
@@ -54,50 +53,42 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
             }
             ipChanged = false
         }
+
+        internalOutput.close()
     }
 
     fun run(noun: Int, verb: Int): Int {
-        // reset program to initial state
         reset()
         program[1] = noun
         program[2] = verb
 
-        execute()
+        runBlocking {
+            execute()
+        }
 
         return program[0]
     }
 
-    fun run(programInputs: List<Int>): Int {
-        if (haltOnOutput) {
-            haltOnOutputReset()
-        } else {
-            reset()
-        }
-        allInputs = programInputs.toMutableList()
+    fun run(inputs: List<Int>) = runBlocking {
+        input = produce { inputs.forEach { send(it) } }
+        runPipeline()
+        output.toList().last()
+    }
 
+    suspend fun runPipeline() {
+        reset()
         execute()
-
-        return output
     }
 
     private fun reset() {
-        haltOnOutputReset()
+        stopped = false
         program = inputInstructions.toMutableList()
-        output = 0
         ip = 0
         ipChanged = false
-    }
-
-    private fun haltOnOutputReset() {
-        stopped = false
-        allInputs = mutableListOf()
-        haltedByOpcode = false
+        internalOutput = Channel(Channel.UNLIMITED)
     }
 
     protected fun stop() {
         stopped = true
-        haltedByOpcode = true
     }
-
-    protected fun input() = allInputs.removeAt(0)
 }

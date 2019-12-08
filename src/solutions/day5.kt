@@ -13,10 +13,12 @@ class TESTMachine(instructions: List<Int>): IntcodeMachine(instructions) {
             program[args[2]] = args[0] * args[1]
         },
         3 to Instruction(1, listOf(0)) { args ->
-            program[args[0]] = input()
+            val i = input.receive()
+            program[args[0]] = i
         },
         4 to Instruction(1) { args ->
-            output = args[0]
+            val i = args[0]
+            internalOutput.send(i)
         },
         5 to Instruction(2) { args ->
             if (args[0] != 0) {
