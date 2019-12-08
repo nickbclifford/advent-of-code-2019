@@ -6,9 +6,17 @@ import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.runBlocking
 import utils.math.digitAt
+import java.util.concurrent.CancellationException
 import kotlin.properties.Delegates
 
-abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
+const val columnSpacer = 30
+
+abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: Int) {
+    val prevId: Int
+        get() = Math.floorMod(id - 1, 5)
+    val nextId: Int
+        get() = Math.floorMod(id + 1, 5)
+
     abstract val opcodes: Map<Int, Instruction>
 
     private var stopped = false
@@ -54,7 +62,10 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
             ipChanged = false
         }
 
-        internalOutput.close()
+        logHeader("before cancel/close")
+        input.cancel(CancellationException("machine $id halted "))
+        internalOutput.close(Exception("machine $id halted"))
+        logHeader("after cancel/close")
     }
 
     fun run(noun: Int, verb: Int): Int {
@@ -91,4 +102,13 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>) {
     protected fun stop() {
         stopped = true
     }
+
+    fun logHeader(message: String) {
+        println(" ".repeat(columnSpacer * id) + "-- $message --")
+    }
+
+    fun logMessage(message: String) {
+        println(" ".repeat(columnSpacer * id) + message)
+    }
+
 }

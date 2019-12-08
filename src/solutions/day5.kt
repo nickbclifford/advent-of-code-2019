@@ -4,7 +4,7 @@ import utils.intcode.Instruction
 import utils.intcode.IntcodeMachine
 import java.io.File
 
-class TESTMachine(instructions: List<Int>, val machineNum: Int): IntcodeMachine(instructions) {
+class TESTMachine(instructions: List<Int>, _id: Int): IntcodeMachine(instructions, _id) {
     override val opcodes = mapOf(
         1 to Instruction(3, listOf(2)) { args ->
             program[args[2]] = args[0] + args[1]
@@ -13,16 +13,16 @@ class TESTMachine(instructions: List<Int>, val machineNum: Int): IntcodeMachine(
             program[args[2]] = args[0] * args[1]
         },
         3 to Instruction(1, listOf(0)) { args ->
-            println("[$machineNum] requesting input")
+            logMessage("requesting input...")
             val i = input.receive()
             program[args[0]] = i
-            println("[$machineNum] input recieved ($i)")
+            logMessage("channel $prevId -> $i")
         },
         4 to Instruction(1) { args ->
             val i = args[0]
-            println("[$machineNum] sending output ($i)")
+            logMessage("sending output...")
             internalOutput.send(i)
-            println("[$machineNum] output sent")
+            logMessage("$i -> channel $nextId")
         },
         5 to Instruction(2) { args ->
             if (args[0] != 0) {
@@ -41,7 +41,7 @@ class TESTMachine(instructions: List<Int>, val machineNum: Int): IntcodeMachine(
             program[args[2]] = if (args[0] == args[1]) 1 else 0
         },
         99 to Instruction(0) {
-            println("-- $machineNum halting --")
+            logHeader("$id halting")
             stop()
         }
     )

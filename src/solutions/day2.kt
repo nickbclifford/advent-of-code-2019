@@ -1,9 +1,10 @@
 package solutions
 
-import utils.intcode.*
+import utils.intcode.Instruction
+import utils.intcode.IntcodeMachine
 import java.io.File
 
-class GravityAssistMachine(input: List<Int>) : IntcodeMachine(input) {
+class GravityAssistMachine(input: List<Int>) : IntcodeMachine(input, 0) {
     override val opcodes = mapOf(
         1 to Instruction(3, listOf(2)) { args ->
             program[args[2]] = args[0] + args[1]

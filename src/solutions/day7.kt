@@ -4,14 +4,13 @@ import com.marcinmoskala.math.permutations
 import kotlinx.coroutines.channels.produce
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
 suspend fun main() {
     val program = File("inputs/test.txt").readText().trim().split(',').map { it.toInt() }
 
-    val machines = List(5) { TESTMachine(program, it) }
+    val machines = Array(5) { TESTMachine(program, it) }
 
 //    val chainPhaseSettings = (0..4).toList().permutations().filter { it.size == 5 }
 //
@@ -47,18 +46,13 @@ suspend fun main() {
 
             for (machine in machines) {
                 launch {
-                    println("-- ${machine.machineNum} starting pipeline --")
+                    machine.logHeader("starting pipeline")
                     machine.runPipeline()
-                    println("-- ${machine.machineNum} finished pipeline")
+                    machine.logHeader("finished pipeline")
                 }.invokeOnCompletion {
-                    println("-- ${machine.machineNum} coroutine completed --")
-                    if (isActive) {
-                        println("(coroutine scope is still active)")
-                    }
+                    machine.logHeader("coroutine completed")
                 }
             }
-
-            println("all feedback coroutines launched")
         }
         println("coroutine scope completed")
         return machines[4].output.toList().last()
