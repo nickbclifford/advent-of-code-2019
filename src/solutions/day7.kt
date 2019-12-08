@@ -1,6 +1,6 @@
 package solutions
 
-import utils.iteration.permutations
+import com.marcinmoskala.math.permutations
 import java.io.File
 
 fun main() {
