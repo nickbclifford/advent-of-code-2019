@@ -8,7 +8,7 @@ import kotlin.properties.Delegates
 
 const val columnSpacer = 30
 
-abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: Int) {
+abstract class IntcodeMachine(private val inputInstructions: List<Long>, val id: Int) {
     val prevId: Int
         get() = Math.floorMod(id - 1, 5)
     val nextId: Int
@@ -25,9 +25,11 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
     var input: ReceiveChannel<Int>? = null
     var output: SendChannel<Int>? = null
 
+    protected var relativeBase = 0
+
     private suspend fun execute() {
         while (!stopped) {
-            val fullOpcode = program[ip]
+            val fullOpcode = program[ip].toInt()
 
             // get instruction, step pointer
             val opcode = fullOpcode % 100
@@ -41,8 +43,9 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
                 } else {
                     // ignore the last two digits
                     when (fullOpcode.digitAt(2 + idx)) {
-                        0 -> program[arg]
+                        0 -> program[arg.toInt()]
                         1 -> arg
+                        2 -> program[(arg + relativeBase).toInt()]
                         else -> throw NotImplementedError()
                     }
                 }
@@ -64,14 +67,14 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
 
     fun run(noun: Int, verb: Int): Int {
         reset()
-        program[1] = noun
-        program[2] = verb
+        program[1] = noun.toLong()
+        program[2] = verb.toLong()
 
         runBlocking {
             execute()
         }
 
-        return program[0]
+        return program[0].toInt()
     }
 
     fun run(inputs: List<Int>) = runBlocking {
@@ -79,7 +82,7 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
         val syncOutput = Channel<Int>(Channel.UNLIMITED)
         output = syncOutput
         runPipeline()
-        syncOutput.toList().last()
+        syncOutput.toList()
     }
 
     suspend fun runPipeline() {

@@ -8,7 +8,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 suspend fun main() {
-    val program = File("inputs/test.txt").readText().trim().split(',').map { it.toInt() }
+    val program = File("inputs/test.txt").readText().trim().split(',').map { it.toLong() }
 
     val machines = List(5) { TESTMachine(program, it) }
 
