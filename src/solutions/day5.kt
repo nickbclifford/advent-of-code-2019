@@ -14,14 +14,16 @@ class TESTMachine(instructions: List<Int>, _id: Int): IntcodeMachine(instruction
         },
         3 to Instruction(1, listOf(0)) { args ->
             logMessage("requesting input...")
-            val i = input.receive()
-            program[args[0]] = i
+            val i = input?.receive()
+            if (i != null) {
+                program[args[0]] = i
+            }
             logMessage("channel $prevId -> $i")
         },
         4 to Instruction(1) { args ->
             val i = args[0]
             logMessage("sending output...")
-            internalOutput.send(i)
+            output?.send(i)
             logMessage("$i -> channel $nextId")
         },
         5 to Instruction(2) { args ->

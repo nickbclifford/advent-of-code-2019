@@ -1,9 +1,6 @@
 package utils.intcode
 
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.produce
-import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.channels.*
 import kotlinx.coroutines.runBlocking
 import utils.math.digitAt
 import java.util.concurrent.CancellationException
@@ -25,11 +22,8 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
     protected var ip by Delegates.observable(0) { _, _, _ -> ipChanged = true }
     private var ipChanged = false
 
-    lateinit var input: ReceiveChannel<Int>
-    protected var internalOutput = Channel<Int>(Channel.UNLIMITED)
-
-    val output: ReceiveChannel<Int>
-        get() = internalOutput
+    var input: ReceiveChannel<Int>? = null
+    var output: SendChannel<Int>? = null
 
     private suspend fun execute() {
         while (!stopped) {
@@ -63,8 +57,8 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
         }
 
         logHeader("before cancel/close")
-        input.cancel(CancellationException("machine $id halted "))
-        internalOutput.close(Exception("machine $id halted"))
+        input?.cancel(CancellationException("machine $id halted "))
+        output?.close()
         logHeader("after cancel/close")
     }
 
@@ -82,8 +76,10 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
 
     fun run(inputs: List<Int>) = runBlocking {
         input = produce { inputs.forEach { send(it) } }
+        val syncOutput = Channel<Int>(Channel.UNLIMITED)
+        output = syncOutput
         runPipeline()
-        output.toList().last()
+        syncOutput.toList().last()
     }
 
     suspend fun runPipeline() {
@@ -96,7 +92,6 @@ abstract class IntcodeMachine(private val inputInstructions: List<Int>, val id: 
         program = inputInstructions.toMutableList()
         ip = 0
         ipChanged = false
-        internalOutput = Channel(Channel.UNLIMITED)
     }
 
     protected fun stop() {
